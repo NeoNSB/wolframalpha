@@ -48,7 +48,7 @@ class Client(object):
         url = 'https://api.wolframalpha.com/v2/query?' + query
         with aiohttp.ClientSession() as session:
             async with session.get(url) as r:
-                assert r.content_type == 'text/xml'
+                assert r.headers.get('Content-Type', None) == 'text/xml'
                 assert r.charset == 'utf-8'
                 body = await r.text()
         return Result(body)
