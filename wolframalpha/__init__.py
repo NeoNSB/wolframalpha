@@ -48,10 +48,13 @@ class Client(object):
         url = 'https://api.wolframalpha.com/v2/query?' + query
         with aiohttp.ClientSession() as session:
             async with session.get(url) as r:
-                assert r.headers.get('Content-Type', None) == 'text/xml'
-                assert r.charset == 'utf-8'
-                body = await r.text()
-        return Result(body)
+                #'Content-Type': 'text/xml;charset=utf-8'
+                header = r.headers.get('Content-Type', '')
+                if len(header) and ';' in header:
+                    content_type = header.split(';')[0]
+                    if content_type == 'text/xml':
+                        body = await r.text()
+                        return Result(body)
 
 
 class ErrorHandler(object):
