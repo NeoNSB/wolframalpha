@@ -1,15 +1,11 @@
 import itertools
 import json
 
-from six.moves import urllib, map
+import aiohttp
+from urllib.parse import urlencode
 
 import xmltodict
 from jaraco.itertools import always_iterable
-
-from . import compat
-
-compat.fix_HTTPMessage()
-
 
 class Client(object):
     """
@@ -21,7 +17,7 @@ class Client(object):
     def __init__(self, app_id):
         self.app_id = app_id
 
-    def query(self, input, params=(), **kwargs):
+    async def query(self, input, params=(), **kwargs):
         """
         Query Wolfram|Alpha using the v2.0 API
 
@@ -48,12 +44,14 @@ class Client(object):
         )
         data = itertools.chain(params, data.items(), kwargs.items())
 
-        query = urllib.parse.urlencode(tuple(data))
+        query = urlencode(tuple(data))
         url = 'https://api.wolframalpha.com/v2/query?' + query
-        resp = urllib.request.urlopen(url)
-        assert resp.headers.get_content_type() == 'text/xml'
-        assert resp.headers.get_param('charset') == 'utf-8'
-        return Result(resp)
+        with aiohttp.ClientSession() as session:
+            async with session.get(url) as r:
+                assert r.content_type == 'text/xml'
+                assert r.charset == 'utf-8'
+                body = await r.text()
+        return Result(body)
 
 
 class ErrorHandler(object):
@@ -173,8 +171,8 @@ class Result(ErrorHandler, Document):
         pod=Pod.from_doc,
     )
 
-    def __init__(self, stream):
-        doc = xmltodict.parse(stream, dict_constructor=dict)['queryresult']
+    def __init__(self, body):
+        doc = xmltodict.parse(body, dict_constructor=dict)['queryresult']
         super(Result, self).__init__(doc)
 
     @property
