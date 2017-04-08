@@ -14,8 +14,9 @@ class Client(object):
     Pass an ID to the object upon instantiation, then
     query Wolfram Alpha using the query method.
     """
-    def __init__(self, app_id):
+    def __init__(self, app_id, session=None):
         self.app_id = app_id
+        self.session = session if session else aiohttp.ClientSession()
 
     async def query(self, input, params=(), **kwargs):
         """
@@ -46,15 +47,14 @@ class Client(object):
 
         query = urlencode(tuple(data))
         url = 'https://api.wolframalpha.com/v2/query?' + query
-        with aiohttp.ClientSession() as session:
-            async with session.get(url) as r:
-                #'Content-Type': 'text/xml;charset=utf-8'
-                header = r.headers.get('Content-Type', '')
-                if len(header) and ';' in header:
-                    content_type = header.split(';')[0]
-                    if content_type == 'text/xml':
-                        body = await r.text()
-                        return Result(body)
+        async with self.session.get(url) as r:
+            #'Content-Type': 'text/xml;charset=utf-8'
+            header = r.headers.get('Content-Type', '')
+            if len(header) and ';' in header:
+                content_type = header.split(';')[0]
+                if content_type == 'text/xml':
+                    body = await r.text()
+                    return Result(body)
 
 
 class ErrorHandler(object):
