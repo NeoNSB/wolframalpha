@@ -47,7 +47,7 @@ class Client(object):
 
         query = urlencode(tuple(data))
         url = 'https://api.wolframalpha.com/v2/query?' + query
-        async with self.session.get(url) as r:
+        async with self.session.get(url, proxy=kwargs.pop('proxy', None)) as r:
             #'Content-Type': 'text/xml;charset=utf-8'
             header = r.headers.get('Content-Type', '')
             if len(header) and ';' in header:
